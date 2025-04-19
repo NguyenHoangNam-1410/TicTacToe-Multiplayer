@@ -24,6 +24,7 @@ public class GameManager : NetworkBehaviour
     public event EventHandler OnRematch;
     public event EventHandler OnGameTie;
     public event EventHandler OnScoreChanged;
+    public event EventHandler OnPlacedObject;
 
 
     public static GameManager Instance { get; private set; }
@@ -49,6 +50,8 @@ public class GameManager : NetworkBehaviour
         public Orientation orientation;
     }
 
+    private const int MAX_SIZE = 3; // Maximum size of the grid (3x3)
+
     private PlayerType localplayerType;
     private NetworkVariable<PlayerType> currentPlayablePlayerType = new NetworkVariable<PlayerType>();
     private PlayerType[,] playerTypeArray;
@@ -65,7 +68,7 @@ public class GameManager : NetworkBehaviour
         }
         Instance = this;
 
-        playerTypeArray = new PlayerType[3, 3]; // 3x3 grid
+        playerTypeArray = new PlayerType[MAX_SIZE, MAX_SIZE]; // 3x3 grid
 
         linesList = new List<Line> {
             //Horizontal lines
@@ -183,6 +186,8 @@ public class GameManager : NetworkBehaviour
         }
         playerTypeArray[x, y] = playerType; // Set the player type in the grid
 
+        TriggerOnPlacedObjectRpc();
+
         OnClickedOnGridPosition?.Invoke(this, new OnClickedOnGridPositionEventArgs { x = x, y = y, playerType = playerType });
 
         switch (currentPlayablePlayerType.Value)
@@ -199,6 +204,11 @@ public class GameManager : NetworkBehaviour
         }
 
         TestWinner();
+    }
+    [Rpc(SendTo.ClientsAndHost)] // This will be called on all clients and the server
+    private void TriggerOnPlacedObjectRpc()
+    {
+        OnPlacedObject?.Invoke(this, EventArgs.Empty);
     }
 
     private bool TestWinnerLine(Line line)
